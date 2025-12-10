@@ -27,15 +27,13 @@ from .views import (
 app_name = 'cars'
 
 urlpatterns = [
-    # ============= Category URLs =============
+  
     path('categories/', CategoryListCreateView.as_view(), name='category-list-create'),
     path('categories/<int:pk>/', CategoryDetailView.as_view(), name='category-detail'),
-    
-    # ============= Car URLs =============
+  
     path('', CarListCreateView.as_view(), name='car-list-create'),
     path('<int:pk>/', CarDetailView.as_view(), name='car-detail'),
-    
-    # ============= Choices URLs =============
+   
     path('choices/seller-types/', SellerTypeChoicesView.as_view(), name='seller-type-choices'),
     path('choices/drives/', DriveChoicesView.as_view(), name='drive-choices'),
     path('choices/fuel-types/', FuelTypeChoicesView.as_view(), name='fuel-type-choices'),
@@ -43,7 +41,7 @@ urlpatterns = [
     path('choices/aspirations/', AspirationChoicesView.as_view(), name='aspiration-choices'),
     path('choices/availability/', AvailabilityChoicesView.as_view(), name='availability-choices'),
     
-    # ============= Car Image URLs =============
+   
     path('<int:car_id>/images/', CarImageUploadView.as_view(), name='car-image-upload'),
     path('<int:car_id>/images/bulk/', CarImageBulkUploadView.as_view(), name='car-image-bulk-upload'),
     path('<int:car_id>/images/<int:image_id>/', CarImageDetailView.as_view(), name='car-image-detail'),

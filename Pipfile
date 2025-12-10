@@ -4,7 +4,25 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
+asgiref = "*"
+dj-database-url = "*"
 django = "*"
+django-cors-headers = "*"
+djangorestframework = "*"
+djangorestframework-simplejwt = "*"
+gunicorn = "*"
+packaging = "*"
+pillow = "*"
+psycopg2-binary = "*"
+pyjwt = "*"
+python-decouple = "*"
+python-dotenv = "*"
+sqlparse = "*"
+tzdata = "*"
+whitenoise = "*"
+django-cloudinary-storage = "*"
+cloudinary = "*"
+django-environ = "*"
 
 [dev-packages]
 

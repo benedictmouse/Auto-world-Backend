@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from .models import Category, Car, CarImage
 from django.contrib.auth import get_user_model
+from decimal import Decimal
 
 User = get_user_model()
 
@@ -18,12 +19,25 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class CarImageSerializer(serializers.ModelSerializer):
-    image = serializers.ImageField(use_url=True)
+    # Use SerializerMethodField to get the full URL
+    image_url = serializers.SerializerMethodField()
     
     class Meta:
         model = CarImage
-        fields = ['id', 'image', 'is_primary', 'order', 'uploaded_at']
+        fields = ['id', 'image_url', 'image', 'is_primary', 'order', 'uploaded_at']
         read_only_fields = ['id', 'uploaded_at']
+
+    def get_image_url(self, obj):
+        """Get the full URL for the image"""
+        request = self.context.get('request')
+        if obj.image:
+            # Get the image URL
+            image_url = obj.image.url
+            # Build absolute URL if request context is available
+            if request is not None:
+                return request.build_absolute_uri(image_url)
+            return image_url
+        return None
 
     def validate(self, attrs):
         # Check max 10 images per car
@@ -38,25 +52,25 @@ class CarImageSerializer(serializers.ModelSerializer):
 
 class CarListSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
+    images = CarImageSerializer(many=True, read_only=True)  # IMPORTANT: Include images
     primary_image = serializers.SerializerMethodField()
     created_by_name = serializers.CharField(source='created_by.full_name', read_only=True)
     image_count = serializers.SerializerMethodField()
     
     # Formatted fields
-    formatted_price = serializers.CharField(read_only=True)
-    formatted_mileage = serializers.CharField(read_only=True)
-    formatted_condition_score = serializers.CharField(read_only=True)
+    formatted_price = serializers.SerializerMethodField()
+    formatted_mileage = serializers.SerializerMethodField()
     seller_type_display = serializers.CharField(source='get_seller_type_display', read_only=True)
     availability_display = serializers.CharField(source='get_availability_display', read_only=True)
 
     class Meta:
         model = Car
         fields = [
-            'id', 'title', 'price', 'formatted_price', 'category', 'category_name',
+            'id', 'title', 'description', 'price', 'formatted_price', 'category', 'category_name',
             'seller_type', 'seller_type_display', 'condition_score', 
-            'formatted_condition_score', 'year', 'location', 'availability',
+            'year', 'location', 'availability',
             'availability_display', 'mileage', 'formatted_mileage', 'fuel_type',
-            'transmission', 'primary_image', 'image_count', 'created_by_name',
+            'transmission', 'drive', 'images', 'primary_image', 'image_count', 'created_by_name',
             'created_at', 'updated_at'
         ]
 
@@ -69,6 +83,12 @@ class CarListSerializer(serializers.ModelSerializer):
     
     def get_image_count(self, obj):
         return obj.images.count()
+    
+    def get_formatted_price(self, obj):
+        return f"KSh {obj.price:,.0f}"
+    
+    def get_formatted_mileage(self, obj):
+        return f"{obj.mileage:,} KM"
 
 
 class CarDetailSerializer(serializers.ModelSerializer):
@@ -78,13 +98,13 @@ class CarDetailSerializer(serializers.ModelSerializer):
     created_by_email = serializers.CharField(source='created_by.email', read_only=True)
     
     # Formatted fields
-    formatted_price = serializers.CharField(read_only=True)
-    formatted_mileage = serializers.CharField(read_only=True)
-    formatted_engine_size = serializers.CharField(read_only=True)
-    formatted_horse_power = serializers.CharField(read_only=True)
-    formatted_torque = serializers.CharField(read_only=True)
-    formatted_acceleration = serializers.CharField(read_only=True)
-    formatted_condition_score = serializers.CharField(read_only=True)
+    formatted_price = serializers.SerializerMethodField()
+    formatted_mileage = serializers.SerializerMethodField()
+    formatted_engine_size = serializers.SerializerMethodField()
+    formatted_horse_power = serializers.SerializerMethodField()
+    formatted_torque = serializers.SerializerMethodField()
+    formatted_acceleration = serializers.SerializerMethodField()
+    formatted_condition_score = serializers.SerializerMethodField()
     
     # Display names for choices
     seller_type_display = serializers.CharField(source='get_seller_type_display', read_only=True)
@@ -110,6 +130,35 @@ class CarDetailSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'created_by', 'created_at', 'updated_at']
 
+    def get_formatted_price(self, obj):
+        return f"KSh {obj.price:,.0f}"
+    
+    def get_formatted_mileage(self, obj):
+        return f"{obj.mileage:,} KM"
+    
+    def get_formatted_engine_size(self, obj):
+        return f"{obj.engine_size} CC"
+    
+    def get_formatted_horse_power(self, obj):
+        if obj.horse_power:
+            return f"{obj.horse_power} Hp"
+        return None
+    
+    def get_formatted_torque(self, obj):
+        if obj.torque:
+            return f"{obj.torque} Nm"
+        return None
+    
+    def get_formatted_acceleration(self, obj):
+        if obj.acceleration:
+            return f"{obj.acceleration} Secs (0-100 Kph)"
+        return None
+    
+    def get_formatted_condition_score(self, obj):
+        if obj.condition_score:
+            return f"{obj.condition_score}/5"
+        return None
+
 
 class CarCreateUpdateSerializer(serializers.ModelSerializer):
     class Meta:
@@ -128,7 +177,7 @@ class CarCreateUpdateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_price(self, value):
-        if value < 0:
+        if value < Decimal('0'):
             raise serializers.ValidationError("Price cannot be negative")
         return value
     
@@ -152,7 +201,7 @@ class CarCreateUpdateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_condition_score(self, value):
-        if value is not None and (value < 0 or value > 5):
+        if value is not None and (value < Decimal('0') or value > Decimal('5')):
             raise serializers.ValidationError("Condition score must be between 0 and 5")
         return value
     
@@ -167,7 +216,7 @@ class CarCreateUpdateSerializer(serializers.ModelSerializer):
         return value
     
     def validate_acceleration(self, value):
-        if value is not None and value < 0:
+        if value is not None and value < Decimal('0'):
             raise serializers.ValidationError("Acceleration cannot be negative")
         return value
 
@@ -217,16 +266,26 @@ class ChoicesSerializer(serializers.Serializer):
 
 class CarFiltersSerializer(serializers.Serializer):
     """Serializer for car filtering options"""
-    min_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    max_price = serializers.DecimalField(max_digits=12, decimal_places=2, required=False)
-    min_year = serializers.IntegerField(required=False)
-    max_year = serializers.IntegerField(required=False)
+    min_price = serializers.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        required=False,
+        min_value=Decimal('0')
+    )
+    max_price = serializers.DecimalField(
+        max_digits=12, 
+        decimal_places=2, 
+        required=False,
+        min_value=Decimal('0')
+    )
+    min_year = serializers.IntegerField(required=False, min_value=1900)
+    max_year = serializers.IntegerField(required=False, max_value=2030)
     category = serializers.IntegerField(required=False)
     seller_type = serializers.ChoiceField(choices=Car.SELLER_TYPE_CHOICES, required=False)
     fuel_type = serializers.ChoiceField(choices=Car.FUEL_TYPE_CHOICES, required=False)
     transmission = serializers.ChoiceField(choices=Car.TRANSMISSION_CHOICES, required=False)
     drive = serializers.ChoiceField(choices=Car.DRIVE_CHOICES, required=False)
     availability = serializers.ChoiceField(choices=Car.AVAILABILITY_CHOICES, required=False)
-    location = serializers.CharField(required=False)
-    min_mileage = serializers.IntegerField(required=False)
-    max_mileage = serializers.IntegerField(required=False)
+    location = serializers.CharField(required=False, max_length=255)
+    min_mileage = serializers.IntegerField(required=False, min_value=0)
+    max_mileage = serializers.IntegerField(required=False, min_value=0)
