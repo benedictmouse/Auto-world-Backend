@@ -182,12 +182,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # CORS settings
 # For development - allow specific origins
 CORS_ALLOWED_ORIGINS = [
-    "http://localhost:3001",
+    "https://adminadmin-ten.vercel.app",
     "http://localhost:3000",
     "http://localhost:5173",
     "http://127.0.0.1:3000",
     "http://127.0.0.1:5173",
     "http://localhost:57395",
+    "https://auto-world-backend-api.onrender.com"
 ]
 
 # For development only - uncomment to allow all origins (NOT for production)
